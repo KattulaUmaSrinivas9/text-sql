@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "daemons": {
+    "chat-python-worker": {
+      "root": ".",
+      "entrypoint": "Dockerfile",
+      "instances": {
+        "iad1": 1
+      }
+    }
+  }
+}
