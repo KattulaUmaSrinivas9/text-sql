@@ -57,9 +57,11 @@ async def poll_chat_messages() -> None:
             "Provide VERCEL_QUEUE_TOKEN or make a Vercel OIDC token or token file available."
         )
 
-    # Local Next.js sends are not pinned to a deployment. Poll all partitions
-    # unless the operator explicitly configures one for this worker.
-    deployment = os.getenv("VERCEL_DEPLOYMENT_ID") or ALL_DEPLOYMENTS
+    # Vercel sets VERCEL_DEPLOYMENT_ID automatically for each deployment. The
+    # worker and Next.js producer are separate projects, so their IDs differ.
+    # Poll all producer partitions unless an operator explicitly pins this
+    # worker with the app-specific CHAT_QUEUE_DEPLOYMENT_ID setting.
+    deployment = os.getenv("CHAT_QUEUE_DEPLOYMENT_ID") or ALL_DEPLOYMENTS
     deployment_label = deployment if isinstance(deployment, str) else "all deployments"
     logger.info("Starting chat queue polling in region %s (%s)", region, deployment_label)
     client = QueueClient(region=region, deployment=deployment)

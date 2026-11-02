@@ -21,7 +21,7 @@ Redis is not the Python input transport. Missing worker receive logs point to th
 
 - Set `CHAT_QUEUE_REGION` to the same fixed queue region in Next.js and the worker, and to the Vercel Queue resource's region. Both currently default to `iad1`.
 - Deploy the worker as a Vercel Daemon using the checked-in `vercel.json` and `Dockerfile`; Daemons are production background processes and do not serve `/health`.
-- Leave `VERCEL_QUEUE_TOKEN` unset in Vercel; it overrides SDK OIDC resolution. Never paste a short-lived OIDC token there. The SDK resolves deployment OIDC and supports `VERCEL_OIDC_TOKEN_FILE` for rotating token files. `VERCEL_DEPLOYMENT_ID` is optional; the worker defaults to polling all deployment partitions.
+- Leave `VERCEL_QUEUE_TOKEN` unset in Vercel; it overrides SDK OIDC resolution. Never paste a short-lived OIDC token there. The SDK resolves deployment OIDC and supports `VERCEL_OIDC_TOKEN_FILE` for rotating token files. Vercel automatically sets `VERCEL_DEPLOYMENT_ID` to the worker deployment, which will not match the separate Next.js deployment. The worker therefore polls all producer deployment partitions by default; only set the app-specific `CHAT_QUEUE_DEPLOYMENT_ID` when intentionally pinning to one partition.
 - Set `NEXT_API_BASE_URL` to the reachable Next.js deployment URL without a trailing slash. `localhost` is only correct when running the apps locally.
 - Set the same `NEXT_CHAT_CALLBACK_SECRET` in the worker and Next.js. Next.js also needs `REDIS_URL` for response fan-out.
 - Do not run multiple independent worker copies with `chat-python-worker` unless shared consumption is intended. Queue delivery is at least once; handlers must tolerate retries.

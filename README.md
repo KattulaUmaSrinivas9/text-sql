@@ -15,7 +15,7 @@ Configure these variables in the Vercel project environment used by the daemon:
 - `CHAT_QUEUE_REGION`: the same fixed queue region as the Next.js producer (currently `iad1`).
 - `NEXT_API_BASE_URL`: reachable URL of the Next.js deployment, with no trailing slash; do not use `localhost` in the deployed worker.
 - `NEXT_CHAT_CALLBACK_SECRET`: same value as the Next.js deployment uses.
-- `VERCEL_DEPLOYMENT_ID` (optional): omit to poll all deployments, or set a specific deployment partition intentionally.
+- `CHAT_QUEUE_DEPLOYMENT_ID` (optional): set only when intentionally polling one deployment partition. Leave unset to poll all partitions. Do not use `VERCEL_DEPLOYMENT_ID`: Vercel automatically sets it to the worker's deployment ID, which differs from the Next.js producer deployment.
 
 Leave `VERCEL_QUEUE_BASE_URL` and `VERCEL_QUEUE_TOKEN` unset in Vercel. `VERCEL_QUEUE_TOKEN` overrides OIDC, so never put a copied short-lived token there. The SDK resolves OIDC credentials at runtime and supports the rotating `VERCEL_OIDC_TOKEN_FILE` source. If the daemon logs `TokenResolutionError`, verify that OIDC is enabled and a runtime token source is available; do not reuse a token pulled for local development. The Python and Node SDKs should use hosted Vercel Queues and deployment credentials. Do not run multiple independent worker copies with the same `chat-python-worker` consumer group unless they should compete for messages.
 
