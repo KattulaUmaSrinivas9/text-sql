@@ -1,0 +1,35 @@
+name: CI - Build
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Python worker
+    if: github.actor == 'KattulaUmaSrinivas9' && github.triggering_actor == 'KattulaUmaSrinivas9'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install project
+        run: python -m pip install -e .
+
+      - name: Compile Python sources
+        run: python -m compileall -q app
+
+      - name: Build daemon container image
+        run: docker build --tag next-react-chat-worker:ci .

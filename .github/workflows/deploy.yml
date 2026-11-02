@@ -1,0 +1,84 @@
+name: CD - Manual Vercel Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Successful CI workflow run ID to deploy"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  deploy:
+    name: Verify and deploy release
+    if: github.actor == 'KattulaUmaSrinivas9' && github.triggering_actor == 'KattulaUmaSrinivas9'
+    runs-on: ubuntu-latest
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Verify successful CI run
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "Invalid workflow run ID."
+            exit 1
+          fi
+
+          RUN_JSON=$(gh run view "$RUN_ID" \
+            --repo KattulaUmaSrinivas9/text-sql \
+            --json conclusion,headSha,headBranch,workflowName,event,jobs)
+
+          echo "$RUN_JSON"
+
+          jq -e '
+            .conclusion == "success" and
+            .headBranch == "main" and
+            .workflowName == "CI - Build" and
+            .event == "push" and
+            any(.jobs[]; .name == "Validate Python worker" and .conclusion == "success")
+          ' <<< "$RUN_JSON" > /dev/null || {
+            echo "Deployment rejected: CI must succeed on main."
+            exit 1
+          }
+
+          echo "commit_sha=$(jq -r '.headSha' <<< "$RUN_JSON")" \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Checkout validated commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.verify.outputs.commit_sha }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install project
+        run: python -m pip install -e .
+
+      - name: Verify Python sources
+        run: python -m compileall -q app
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel production configuration
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Deploy daemon to Vercel production
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN"
